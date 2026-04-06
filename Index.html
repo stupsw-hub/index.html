@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Data Center Atlas</title>
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <style>
+    :root {
+      --bg: #07111f;
+      --bg-2: #0b1728;
+      --panel: rgba(10, 18, 32, 0.82);
+      --panel-2: rgba(16, 26, 43, 0.92);
+      --border: rgba(140, 191, 255, 0.14);
+      --text: #edf4ff;
+      --muted: #8fa7c6;
+      --accent: #3cc6b7;
+      --accent-2: #4c8dff;
+      --danger: #ff6b6b;
+      --warning: #f6c453;
+      --shadow: 0 24px 60px rgba(0,0,0,.35);
+      --radius: 22px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background: radial-gradient(circle at top left, rgba(76,141,255,.18), transparent 28%), radial-gradient(circle at top right, rgba(60,198,183,.14), transparent 20%), linear-gradient(180deg, var(--bg-2), var(--bg)); color: var(--text); }
+    body { overflow: hidden; }
+    .app { position: relative; height: 100vh; width: 100vw; }
+    #map { position: absolute; inset: 0; }
+
+    .topbar {
+      position: absolute; top: 18px; left: 18px; right: 18px; z-index: 20;
+      display: flex; justify-content: space-between; align-items: center; gap: 16px;
+      pointer-events: none;
+    }
+    .brand, .toolbar, .sidepanel, .modal, .legend {
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+    }
+    .brand {
+      pointer-events: auto;
+      display: flex; align-items: center; gap: 12px;
+      background: var(--panel); border: 1px solid var(--border); border-radius: 18px;
+      padding: 14px 18px; box-shadow: var(--shadow);
+    }
+    .brand-icon {
+      width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center;
+      background: linear-gradient(135deg, var(--accent-2), var(--accent)); font-size: 20px;
+    }
+    .brand h1 { margin: 0; font-size: 22px; letter-spacing: -.02em; }
+    .brand p { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+
+    .toolbar {
+      pointer-events: auto;
+      display: flex; align-items: center; gap: 10px; background: var(--panel);
+      border: 1px solid var(--border); border-radius: 18px; padding: 10px; box-shadow: var(--shadow);
+    }
+    .search {
+      width: 300px; max-width: 38vw; border: 0; outline: 0; color: var(--text); background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.06); border-radius: 14px; padding: 14px 16px;
+    }
+    .btn {
+      border: 0; color: var(--text); cursor: pointer; padding: 13px 16px; border-radius: 14px;
+      background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08); font-weight: 600;
+    }
+    .btn.primary { background: linear-gradient(135deg, var(--accent-2), var(--accent)); color: white; }
+
+    .sidepanel {
+      position: absolute; left: 18px; top: 96px; bottom: 18px; width: 330px; z-index: 15;
+      background: var(--panel); border: 1px solid var(--border); border-radius: 24px; box-shadow: var(--shadow);
+      padding: 18px; display: flex; flex-direction: column; gap: 16px;
+    }
+    .section-title { font-size: 12px; text-transform: uppercase; letter-spacing: .14em; color: var(--muted); }
+    .hero-card {
+      background: linear-gradient(180deg, rgba(76,141,255,.14), rgba(60,198,183,.08));
+      border: 1px solid rgba(255,255,255,.06); border-radius: 18px; padding: 18px;
+    }
+    .hero-card h2 { margin: 6px 0 8px; font-size: 24px; line-height: 1.05; }
+    .hero-card p { margin: 0; color: var(--muted); font-size: 14px; }
+    .stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+    .stat {
+      background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.06); border-radius: 16px; padding: 12px;
+    }
+    .stat strong { display: block; font-size: 22px; }
+    .stat span { color: var(--muted); font-size: 12px; }
+    .site-list { overflow: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 4px; }
+    .site-item {
+      background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.06); border-radius: 16px;
+      padding: 14px; cursor: pointer; transition: .2s ease; 
+    }
+    .site-item:hover, .site-item.active { transform: translateY(-1px); border-color: rgba(76,141,255,.35); background: rgba(76,141,255,.08); }
+    .site-item h3 { margin: 0 0 7px; font-size: 15px; }
+    .site-item p { margin: 0; color: var(--muted); font-size: 13px; }
+    .tags { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
+    .tag {
+      font-size: 11px; color: var(--text); padding: 6px 8px; border-radius: 999px;
+      background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.08);
+    }
+
+    .legend {
+      position: absolute; right: 18px; bottom: 18px; z-index: 15;
+      background: var(--panel); border: 1px solid var(--border); border-radius: 18px; box-shadow: var(--shadow);
+      padding: 14px 16px;
+    }
+    .legend-row { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 13px; margin-top: 8px; }
+    .dot { width: 10px; height: 10px; border-radius: 999px; }
+
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(2,8,18,.55); z-index: 40; display: none;
+    }
+    .modal-backdrop.show { display: block; }
+    .modal {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -46%) scale(.96); opacity: 0;
+      width: min(760px, calc(100vw - 32px)); max-height: 82vh; overflow: auto; z-index: 50;
+      background: var(--panel-2); border: 1px solid var(--border); border-radius: 26px; box-shadow: var(--shadow);
+      padding: 24px; transition: .22s ease;
+    }
+    .modal.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    .modal-top { display: flex; justify-content: space-between; gap: 14px; align-items: start; }
+    .modal h2 { margin: 6px 0 6px; font-size: 30px; line-height: 1.05; }
+    .modal-sub { color: var(--muted); }
+    .close { background: transparent; color: var(--muted); border: 1px solid rgba(255,255,255,.1); width: 42px; height: 42px; border-radius: 14px; cursor: pointer; font-size: 20px; }
+    .grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-top: 18px; }
+    .card { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.06); border-radius: 18px; padding: 14px; }
+    .card .k { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
+    .card .v { margin-top: 8px; font-size: 18px; font-weight: 700; }
+    .detail-grid { display: grid; grid-template-columns: 1.15fr .85fr; gap: 14px; margin-top: 14px; }
+    .detail-block { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.06); border-radius: 18px; padding: 16px; }
+    .detail-block h4 { margin: 0 0 10px; font-size: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+    .detail-block p { margin: 0; line-height: 1.55; }
+    .detail-block ul { margin: 0; padding-left: 18px; color: var(--text); }
+    .detail-block li { margin: 7px 0; }
+
+    @media (max-width: 980px) {
+      .sidepanel { display: none; }
+      .search { width: 220px; max-width: 48vw; }
+      .grid, .detail-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 680px) {
+      .topbar { flex-direction: column; align-items: stretch; }
+      .toolbar { width: 100%; }
+      .search { width: 100%; max-width: none; }
+      .legend { left: 18px; right: 18px; }
+      .grid, .detail-grid { grid-template-columns: 1fr; }
+      .modal h2 { font-size: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div id="map"></div>
+
+    <div class="topbar">
+      <div class="brand">
+        <div class="brand-icon">🧠</div>
+        <div>
+          <h1>AI Data Center Atlas</h1>
+          <p>World map, Europe deep-dive, investor-style interface</p>
+        </div>
+      </div>
+      <div class="toolbar">
+        <input id="searchInput" class="search" placeholder="Search site, country, builder" />
+        <button class="btn" id="allBtn">All</button>
+        <button class="btn primary" id="euBtn">Europe</button>
+      </div>
+    </div>
+
+    <aside class="sidepanel">
+      <div class="hero-card">
+        <div class="section-title">Overview</div>
+        <h2>Track global AI compute buildout.</h2>
+        <p>Click a marker to open a premium detail sheet with builder, capex, capacity, timing, and customers.</p>
+      </div>
+      <div class="stats">
+        <div class="stat"><strong id="statCount">5</strong><span>Sites</span></div>
+        <div class="stat"><strong id="statEu">4</strong><span>Europe</span></div>
+        <div class="stat"><strong id="statBig">2</strong><span>Megaprojects</span></div>
+      </div>
+      <div>
+        <div class="section-title" style="margin-bottom:10px;">Facilities</div>
+        <div id="siteList" class="site-list"></div>
+      </div>
+    </aside>
+
+    <div class="legend">
+      <div class="section-title">Legend</div>
+      <div class="legend-row"><span class="dot" style="background:#3cc6b7"></span> Operational / expanding</div>
+      <div class="legend-row"><span class="dot" style="background:#ff6b6b"></span> Planned / under construction</div>
+      <div class="legend-row"><span class="dot" style="background:#f6c453"></span> Reference site outside Europe</div>
+    </div>
+
+    <div id="backdrop" class="modal-backdrop"></div>
+    <div id="modal" class="modal">
+      <div class="modal-top">
+        <div>
+          <div class="section-title">Facility brief</div>
+          <h2 id="modalTitle"></h2>
+          <div id="modalSub" class="modal-sub"></div>
+        </div>
+        <button id="closeModal" class="close">✕</button>
+      </div>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+  <script>
+    const DATA = [
+      {
+        id: 'g42-france', name: 'G42 / DataOne AI Campus', country: 'France', city: 'Grenoble', region: 'Europe', status: 'Under Construction',
+        lat: 45.1885, lon: 5.7245, color: '#ff6b6b', size: 24,
+        builder: 'G42 + DataOne', owner: 'DataOne / G42', cost: '€15 billion', capacity: '1.4 GW campus',
+        timing: 'Phased rollout from mid-2025', customers: ['French sovereign AI', 'Mistral AI', 'Enterprise AI'],
+        notes: 'Europe\'s largest announced AI campus. AMD Instinct accelerator stack.'
+      },
+      {
+        id: 'nebius-finland', name: 'Nebius Lappeenranta Gigafactory', country: 'Finland', city: 'Lappeenranta', region: 'Europe', status: 'Planned',
+        lat: 61.0587, lon: 28.1887, color: '#ff6b6b', size: 22,
+        builder: 'Nebius + Polarnode', owner: 'Nebius Group', cost: '$10 billion', capacity: '310 MW',
+        timing: 'Online 2027', customers: ['Microsoft Azure', 'Meta AI', 'Open model training'],
+        notes: 'Hydro-powered. One of Europe\'s largest AI infrastructure projects.'
+      },
+      {
+        id: 'google-frankfurt', name: 'Google Cloud Frankfurt', country: 'Germany', city: 'Frankfurt', region: 'Europe', status: 'Operational',
+        lat: 50.1109, lon: 8.6821, color: '#3cc6b7', size: 20,
+        builder: 'Google', owner: 'Google', cost: 'Multi-billion €', capacity: '200+ MW',
+        timing: 'Operational', customers: ['Google Cloud AI/ML', 'Enterprise workloads'],
+        notes: 'Major AI-ready cloud region with strong enterprise demand.'
+      },
+      {
+        id: 'stargate-norway', name: 'Stargate Narvik AI Factory', country: 'Norway', city: 'Narvik', region: 'Europe', status: 'Planned',
+        lat: 68.4388, lon: 17.4279, color: '#ff6b6b', size: 21,
+        builder: 'OpenAI + Nscale + Aker', owner: 'Stargate consortium', cost: 'Multi-billion $', capacity: '230 MW',
+        timing: 'Development phase', customers: ['OpenAI', 'Partners'],
+        notes: '100% hydro power and strategic Nordic location.'
+      },
+      {
+        id: 'xai-colossus', name: 'xAI Colossus Memphis', country: 'United States', city: 'Memphis, TN', region: 'North America', status: 'Live + Expanding',
+        lat: 35.1495, lon: -90.0490, color: '#f6c453', size: 23,
+        builder: 'xAI', owner: 'xAI', cost: 'Multi-billion $', capacity: '100k+ H100 GPUs',
+        timing: '2024-2026 ramp', customers: ['xAI Grok training'],
+        notes: 'Reference benchmark for frontier-scale GPU clustering.'
+      }
+    ];
+
+    let filteredData = [...DATA];
+    let activeRegion = 'Europe';
+    let activeId = DATA[0].id;
+
+    const mapEl = document.getElementById('map');
+    const searchInput = document.getElementById('searchInput');
+    const siteList = document.getElementById('siteList');
+    const modal = document.getElementById('modal');
+    const backdrop = document.getElementById('backdrop');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalSub = document.getElementById('modalSub');
+    const modalBody = document.getElementById('modalBody');
+
+    function formatStats() {
+      document.getElementById('statCount').textContent = DATA.length;
+      document.getElementById('statEu').textContent = DATA.filter(d => d.region === 'Europe').length;
+      document.getElementById('statBig').textContent = DATA.filter(d => /GW|310 MW|230 MW/.test(d.capacity)).length;
+    }
+
+    function applyFilter() {
+      const q = searchInput.value.trim().toLowerCase();
+      filteredData = DATA.filter(d => {
+        const regionOk = activeRegion === 'All' ? true : d.region === activeRegion;
+        const text = [d.name, d.country, d.city, d.builder, d.owner].join(' ').toLowerCase();
+        return regionOk && (!q || text.includes(q));
+      });
+      if (!filteredData.find(d => d.id === activeId) && filteredData.length) activeId = filteredData[0].id;
+      renderList();
+      renderMap();
+    }
+
+    function renderList() {
+      siteList.innerHTML = filteredData.map(d => `
+        <div class="site-item ${d.id === activeId ? 'active' : ''}" onclick="selectSite('${d.id}')">
+          <h3>${d.name}</h3>
+          <p>${d.city}, ${d.country}</p>
+          <div class="tags">
+            <span class="tag">${d.status}</span>
+            <span class="tag">${d.capacity}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderMap() {
+      const selected = filteredData.find(d => d.id === activeId) || filteredData[0] || DATA[0];
+      const trace = {
+        type: 'scattergeo',
+        mode: 'markers',
+        lat: filteredData.map(d => d.lat),
+        lon: filteredData.map(d => d.lon),
+        text: filteredData.map(d => d.name),
+        customdata: filteredData.map(d => d.id),
+        hovertemplate: '<b>%{text}</b><extra></extra>',
+        marker: {
+          size: filteredData.map(d => d.id === activeId ? d.size + 5 : d.size),
+          color: filteredData.map(d => d.color),
+          opacity: 0.95,
+          line: { color: 'rgba(255,255,255,0.95)', width: 2.5 }
+        }
+      };
+
+      const layout = {
+        margin: { t: 0, r: 0, b: 0, l: 0 },
+        paper_bgcolor: 'transparent',
+        plot_bgcolor: 'transparent',
+        geo: {
+          scope: activeRegion === 'Europe' ? 'europe' : 'world',
+          projection: { type: activeRegion === 'Europe' ? 'mercator' : 'natural earth' },
+          showframe: false,
+          showland: true,
+          landcolor: '#102133',
+          bgcolor: 'transparent',
+          showcountries: true,
+          countrycolor: 'rgba(145,173,210,.35)',
+          coastlinecolor: 'rgba(100,189,255,.35)',
+          showocean: true,
+          oceancolor: '#08111d',
+          lakecolor: '#08111d',
+          center: activeRegion === 'Europe' ? { lat: 54, lon: 15 } : undefined,
+          lonaxis: activeRegion === 'Europe' ? { range: [-15, 40] } : undefined,
+          lataxis: activeRegion === 'Europe' ? { range: [34, 72] } : undefined
+        },
+        annotations: selected ? [{
+          x: 0.985, y: 0.97, xref: 'paper', yref: 'paper', xanchor: 'right', yanchor: 'top', showarrow: false,
+          align: 'left', bgcolor: 'rgba(10,18,32,0.78)', bordercolor: 'rgba(140,191,255,0.14)', borderwidth: 1, borderpad: 12,
+          font: { color: '#edf4ff', size: 13 },
+          text: `<b>${selected.name}</b><br><span style="color:#8fa7c6">${selected.city}, ${selected.country}</span><br>${selected.capacity}`
+        }] : []
+      };
+
+      Plotly.newPlot(mapEl, [trace], layout, { responsive: true, displayModeBar: false, displaylogo: false });
+      mapEl.on('plotly_click', ev => {
+        const id = ev.points?.[0]?.customdata;
+        if (id) selectSite(id, true);
+      });
+    }
+
+    function selectSite(id, openModal = false) {
+      activeId = id;
+      renderList();
+      renderMap();
+      if (openModal) openDetails(id);
+    }
+
+    function openDetails(id) {
+      const d = DATA.find(x => x.id === id);
+      if (!d) return;
+      modalTitle.textContent = d.name;
+      modalSub.textContent = `${d.city}, ${d.country} · ${d.status}`;
+      modalBody.innerHTML = `
+        <div class="grid">
+          <div class="card"><div class="k">Capex</div><div class="v">${d.cost}</div></div>
+          <div class="card"><div class="k">Capacity</div><div class="v">${d.capacity}</div></div>
+          <div class="card"><div class="k">Builder</div><div class="v">${d.builder}</div></div>
+          <div class="card"><div class="k">Owner</div><div class="v">${d.owner}</div></div>
+        </div>
+        <div class="detail-grid">
+          <div class="detail-block">
+            <h4>Project snapshot</h4>
+            <p>${d.notes}</p>
+            <div style="height:12px"></div>
+            <h4>Timeline</h4>
+            <p>${d.timing}</p>
+          </div>
+          <div class="detail-block">
+            <h4>Main customers</h4>
+            <ul>${d.customers.map(c => `<li>${c}</li>`).join('')}</ul>
+          </div>
+        </div>
+      `;
+      backdrop.classList.add('show');
+      modal.classList.add('show');
+    }
+
+    function closeDetails() {
+      backdrop.classList.remove('show');
+      modal.classList.remove('show');
+    }
+
+    document.getElementById('euBtn').addEventListener('click', () => { activeRegion = 'Europe'; applyFilter(); });
+    document.getElementById('allBtn').addEventListener('click', () => { activeRegion = 'All'; applyFilter(); });
+    searchInput.addEventListener('input', applyFilter);
+    document.getElementById('closeModal').addEventListener('click', closeDetails);
+    backdrop.addEventListener('click', closeDetails);
+    window.selectSite = selectSite;
+
+    formatStats();
+    applyFilter();
+  </script>
+</body>
+</html>
