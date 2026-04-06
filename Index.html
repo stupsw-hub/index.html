@@ -6,6 +6,8 @@
   <title>AI Data Center Atlas</title>
   <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
   <style>
+    .logo {
+  width
     :root {
       --bg: #07111f;
       --bg-2: #0b1728;
@@ -204,41 +206,8 @@
 
   <script>
     const DATA = [
-      {
-        id: 'g42-france', name: 'G42 / DataOne AI Campus', country: 'France', city: 'Grenoble', region: 'Europe', status: 'Under Construction',
-        lat: 45.1885, lon: 5.7245, color: '#ff6b6b', size: 24,
-        builder: 'G42 + DataOne', owner: 'DataOne / G42', cost: '€15 billion', capacity: '1.4 GW campus',
-        timing: 'Phased rollout from mid-2025', customers: ['French sovereign AI', 'Mistral AI', 'Enterprise AI'],
-        notes: 'Europe\'s largest announced AI campus. AMD Instinct accelerator stack.'
-      },
-      {
-        id: 'nebius-finland', name: 'Nebius Lappeenranta Gigafactory', country: 'Finland', city: 'Lappeenranta', region: 'Europe', status: 'Planned',
-        lat: 61.0587, lon: 28.1887, color: '#ff6b6b', size: 22,
-        builder: 'Nebius + Polarnode', owner: 'Nebius Group', cost: '$10 billion', capacity: '310 MW',
-        timing: 'Online 2027', customers: ['Microsoft Azure', 'Meta AI', 'Open model training'],
-        notes: 'Hydro-powered. One of Europe\'s largest AI infrastructure projects.'
-      },
-      {
-        id: 'google-frankfurt', name: 'Google Cloud Frankfurt', country: 'Germany', city: 'Frankfurt', region: 'Europe', status: 'Operational',
-        lat: 50.1109, lon: 8.6821, color: '#3cc6b7', size: 20,
-        builder: 'Google', owner: 'Google', cost: 'Multi-billion €', capacity: '200+ MW',
-        timing: 'Operational', customers: ['Google Cloud AI/ML', 'Enterprise workloads'],
-        notes: 'Major AI-ready cloud region with strong enterprise demand.'
-      },
-      {
-        id: 'stargate-norway', name: 'Stargate Narvik AI Factory', country: 'Norway', city: 'Narvik', region: 'Europe', status: 'Planned',
-        lat: 68.4388, lon: 17.4279, color: '#ff6b6b', size: 21,
-        builder: 'OpenAI + Nscale + Aker', owner: 'Stargate consortium', cost: 'Multi-billion $', capacity: '230 MW',
-        timing: 'Development phase', customers: ['OpenAI', 'Partners'],
-        notes: '100% hydro power and strategic Nordic location.'
-      },
-      {
-        id: 'xai-colossus', name: 'xAI Colossus Memphis', country: 'United States', city: 'Memphis, TN', region: 'North America', status: 'Live + Expanding',
-        lat: 35.1495, lon: -90.0490, color: '#f6c453', size: 23,
-        builder: 'xAI', owner: 'xAI', cost: 'Multi-billion $', capacity: '100k+ H100 GPUs',
-        timing: '2024-2026 ramp', customers: ['xAI Grok training'],
-        notes: 'Reference benchmark for frontier-scale GPU clustering.'
-      }
+  {
+    id: 'g42-france', logo
     ];
 
     let filteredData = [...DATA];
@@ -272,9 +241,9 @@
       renderMap();
     }
 
-    function renderList() {
-      siteList.innerHTML = filteredData.map(d => `
-        <div class="site-item ${d.id === activeId ? 'active' : ''}" onclick="selectSite('${d.id}')">
+  function renderList() {
+  siteList.innerHTML = filteredData.map(d => `
+    <div class="site-item ${d.id)">
           <h3>${d.name}</h3>
           <p>${d.city}, ${d.country}</p>
           <div class="tags">
